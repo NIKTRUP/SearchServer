@@ -199,12 +199,41 @@ struct Document {
     int rating;
 };
 
+void PrintDocument(const Document& document) {
+    cout << "{ "s
+         << "document_id = "s << document.id << ", "s
+         << "relevance = "s << document.relevance << ", "s
+         << "rating = "s << document.rating << " }"s << endl;
+}
+
+
+ostream& operator<<(ostream& out, const Document& document) {
+    out << "{ "s
+        << "document_id = "s << document.id << ", "s
+        << "relevance = "s << document.relevance << ", "s
+        << "rating = "s << document.rating << " }"s;
+    return out;
+}
+
+
+
 enum class DocumentStatus {
     ACTUAL,
     IRRELEVANT,
     BANNED,
     REMOVED,
 };
+
+void PrintMatchDocumentResult(int document_id, const vector<string>& words, DocumentStatus status) {
+    cout << "{ "s
+         << "document_id = "s << document_id << ", "s
+         << "status = "s << static_cast<int>(status) << ", "s
+         << "words ="s;
+    for (const string& word : words) {
+        cout << ' ' << word;
+    }
+    cout << "}"s << endl;
+}
 
 class SearchServer {
 public:
@@ -237,7 +266,7 @@ public:
      void AddDocument(int document_id, const string& document,
                      DocumentStatus status, const vector<int>& ratings) {
         if(document_id < 0 || documents_.count(document_id) != 0){
-            throw invalid_argument("Документ не добавлн"s);
+            throw invalid_argument("Invalid document_id"s);
         }
 
         const vector<string> words = SplitIntoWordsNoStop(document);
@@ -320,6 +349,16 @@ public:
 
 private:
 
+    struct DocumentData {
+        int rating;
+        DocumentStatus status;
+    };
+
+    set<string> stop_words_;
+    map<string, map<int, double>> word_to_document_freqs_;
+    vector<int> document_id_direct_order_;
+    map<int, DocumentData> documents_;
+
     static bool IsValidWord(const string& word) {
         return none_of(word.begin(), word.end(), [](char c) {
             return c >= '\0' && c < ' ';
@@ -335,16 +374,6 @@ private:
         }
     }
 
-    struct DocumentData {
-        int rating;
-        DocumentStatus status;
-    };
-
-    set<string> stop_words_;
-    map<string, map<int, double>> word_to_document_freqs_;
-    vector<int> document_id_direct_order_;
-    map<int, DocumentData> documents_;
-
     bool IsStopWord(const string& word) const {
         return stop_words_.count(word) > 0;
     }
@@ -353,7 +382,7 @@ private:
         vector<string> words;
         for (const string& word : SplitIntoWords(text)) {
             if(!IsValidWord(word)){
-                throw invalid_argument("Документ не добавлен"s);
+                throw invalid_argument("Word "s + word + " is invalid"s);
             }
 
             if (!IsStopWord(word)) {
@@ -453,6 +482,103 @@ private:
         return matched_documents;
     }
 };
+
+void FindTopDocuments(const SearchServer& search_server, const string& raw_query) {
+    cout << "Результаты поиска по запросу: "s << raw_query << endl;
+    try {
+        for (const Document& document : search_server.FindTopDocuments(raw_query)) {
+            PrintDocument(document);
+        }
+    } catch (const invalid_argument& e) {
+        cout << "Ошибка поиска: "s << e.what() << endl;
+    }
+}
+
+void MatchDocuments(const SearchServer& search_server, const string& query) {
+    try {
+        cout << "Матчинг документов по запросу: "s << query << endl;
+        const int document_count = search_server.GetDocumentCount();
+        for (int index = 0; index < document_count; ++index) {
+            const int document_id = search_server.GetDocumentId(index);
+            const auto [words, status] = search_server.MatchDocument(query, document_id);
+            PrintMatchDocumentResult(document_id, words, status);
+        }
+    } catch (const invalid_argument& e) {
+        cout << "Ошибка матчинга документов на запрос "s << query << ": "s << e.what() << endl;
+    }
+}
+
+template <typename Iterator>
+class IteratorRange {
+public:
+    IteratorRange(Iterator begin, Iterator end)
+        : first_(begin)
+        , last_(end)
+        , size_(distance(first_, last_)) {
+    }
+
+    Iterator begin() const {
+        return first_;
+    }
+
+    Iterator end() const {
+        return last_;
+    }
+
+    size_t size() const {
+        return size_;
+    }
+
+private:
+    Iterator first_, last_;
+    size_t size_;
+};
+
+template <typename Iterator>
+ostream& operator<<(ostream& out, const IteratorRange<Iterator>& range) {
+    for (Iterator it = range.begin(); it != range.end(); ++it) {
+        out << *it;
+    }
+    return out;
+}
+
+
+template <typename Iterator>
+class Paginator {
+   public:
+
+    Paginator(Iterator begin, Iterator end, size_t page_size) {
+        for (size_t left = distance(begin, end); left > 0;) {
+            const size_t current_page_size = min(page_size, left);
+            const Iterator current_page_end = next(begin, current_page_size);
+            pages_.push_back(IteratorRange(begin, current_page_end));
+
+            left -= current_page_size;
+            begin = current_page_end;
+        }
+    }
+
+        auto begin() const {
+            return pages_.begin();
+        }
+
+        auto end() const {
+            return pages_.end();
+        }
+
+        size_t size() const {
+            return pages_.size();
+        }
+
+
+   private:
+    vector<IteratorRange<Iterator>> pages_;
+};
+
+template <typename Container>
+auto Paginate(const Container& c, size_t page_size) {
+    return Paginator(begin(c), end(c), page_size);
+}
 
 // -------- Начало модульных тестов поисковой системы ----------
 
@@ -789,18 +915,26 @@ void TestSearchServer() {
 // --------- Окончание модульных тестов поисковой системы -----------
 
 
-void PrintDocument(const Document& document) {
-    cout << "{ "s
-         << "document_id = "s << document.id << ", "s
-         << "relevance = "s << document.relevance << ", "s
-         << "rating = "s << document.rating << " }"s << endl;
-}
 
 int main() {
+
 #ifdef _GLIBCXX_DEBUG
     TestSearchServer();
     cerr << "Search server testing finished"s << endl;
 #endif
 
+    SearchServer search_server("and with"s);
+    search_server.AddDocument(1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    search_server.AddDocument(2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2, 3});
+    search_server.AddDocument(3, "big cat nasty hair"s, DocumentStatus::ACTUAL, {1, 2, 8});
+    search_server.AddDocument(4, "big dog cat Vladislav"s, DocumentStatus::ACTUAL, {1, 3, 2});
+    search_server.AddDocument(5, "big dog hamster Borya"s, DocumentStatus::ACTUAL, {1, 1, 1});
+    const auto search_results = search_server.FindTopDocuments("curly dog"s);
+    int page_size = 2;
+    const auto pages = Paginate(search_results, page_size);
+    // Выводим найденные документы по страницам
+    for (auto page = pages.begin(); page != pages.end(); ++page) {
+        cout << *page << endl;
+        cout << "Page break"s << endl;
+    }
 }
-
