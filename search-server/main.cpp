@@ -3,49 +3,47 @@
 #include "search_server.h"
 #include "request_queue.h"
 #include "read_input_functions.h"
-#include "tests.h"
+#include "log_duration.h"
+#include "test_example_functions.h"
+#include "remove_duplicates.h"
 
 using namespace std::literals::string_literals;
 
+
 int main() {
 
-#ifdef DEBUG
-    TestSearchServer();
-    std::cerr << "Search server testing finished"s << std::endl;
-#endif
+    #ifdef DEBUG
+        TestSearchServer();
+        std::cerr << "Search server testing finished"s << std::endl;
+    #endif
 
-    auto sbc = "and in at"s;
-    SearchServer search_server(sbc);
-    RequestQueue request_queue(search_server);
-     sbc = "curly cat curly tail"s;
-    auto abc1 = {7, 2, 7};
-    search_server.AddDocument(1, sbc, DocumentStatus::ACTUAL, abc1);
-    sbc = "curly dog and fancy collar"s;
-    std::vector<int> abc2 = {1, 2, 3};
-    search_server.AddDocument(2, sbc, DocumentStatus::ACTUAL,abc2 );
-    sbc = "big cat fancy collar "s;
-    std::vector<int> abc3 = {1, 2, 8};
-    search_server.AddDocument(3, sbc, DocumentStatus::ACTUAL, abc3);
-     sbc = "big dog sparrow Eugene"s;
-    std::vector<int> abc4 = {1, 3, 2};
-    search_server.AddDocument(4, sbc, DocumentStatus::ACTUAL, abc4);
-    sbc = "big cat fancy collar "s;
-    std::vector<int> abc5 = {1, 1, 1};
-    search_server.AddDocument(5, sbc, DocumentStatus::ACTUAL, abc5);
-    // 1439 запросов с нулевым результатом
-    for (int i = 0; i < 1439; ++i) {
-        request_queue.AddFindRequest("empty request"s);
-    }
-    // все еще 1439 запросов с нулевым результатом
-    std::string doc2 = "curly dog"s;
-    request_queue.AddFindRequest(doc2);
-    // новые сутки, первый запрос удален, 1438 запросов с нулевым результатом
-    doc2 = "big collar"s;
-    request_queue.AddFindRequest(doc2);
-    // первый запрос удален, 1437 запросов с нулевым результатом
-    doc2 = "sparrow"s;
-    request_queue.AddFindRequest(doc2);
-    std::cout << "Total empty requests: "s << request_queue.GetNoResultRequests() << std::endl;
-    return 0;
+    SearchServer search_server("and with"s);
 
+    AddDocument(search_server, 1, "funny pet and nasty rat"s, DocumentStatus::ACTUAL, {7, 2, 7});
+    AddDocument(search_server, 2, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // дубликат документа 2, будет удалён
+    AddDocument(search_server, 3, "funny pet with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // отличие только в стоп-словах, считаем дубликатом
+    AddDocument(search_server, 4, "funny pet and curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // множество слов такое же, считаем дубликатом документа 1
+    AddDocument(search_server, 5, "funny funny pet and nasty nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // добавились новые слова, дубликатом не является
+    AddDocument(search_server, 6, "funny pet and not very nasty rat"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // множество слов такое же, как в id 6, несмотря на другой порядок, считаем дубликатом
+    AddDocument(search_server, 7, "very nasty rat and not very funny pet"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // есть не все слова, не является дубликатом
+    AddDocument(search_server, 8, "pet with rat and rat and rat"s, DocumentStatus::ACTUAL, {1, 2});
+
+    // слова из разных документов, не является дубликатом
+    AddDocument(search_server, 9, "nasty rat with curly hair"s, DocumentStatus::ACTUAL, {1, 2});
+
+    std::cout << "Before duplicates removed: "s << search_server.GetDocumentCount() << std::endl;
+    RemoveDuplicates(search_server);
+    std::cout << "After duplicates removed: "s << search_server.GetDocumentCount() << std::endl;
 }
