@@ -2,6 +2,7 @@
 #define LOG_DURATION_H
 #include <chrono>
 #include <string>
+#include <string_view>
 #include <iostream>
 
 #define PROFILE_CONCAT_INTERNAL(X, Y) X##Y
@@ -16,7 +17,7 @@ public:
     // с помощью using для удобства
     using Clock = std::chrono::steady_clock;
 
-    LogDuration(const std::string& id, std::ostream& stream = std::cerr)
+    LogDuration(const std::string_view id, std::ostream& stream = std::cerr)
         : stream_(stream), id_(id){
     }
 
@@ -34,6 +35,8 @@ private:
     const std::string id_;
     const Clock::time_point start_time_ = Clock::now();
 };
+
+
 
 
 

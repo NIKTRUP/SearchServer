@@ -1,56 +1,21 @@
 #ifndef TEST_EXAMPLE_FUNCTIONS_H
 #define TEST_EXAMPLE_FUNCTIONS_H
 #include "search_server.h"
-//#include "write_output_functions.h"
-#include "remove_duplicates.h"
+#include "log_duration.h"
+#include "test_framework.h"
+#include "concurrent_map.h"
 #include <cassert>
 
+using namespace std;
 
-template <typename Function>
-void RunTestImpl(Function function,const std::string& func) {
-    function();
-    std::cerr << func << " OK" << std::endl;
-}
 
-#define RUN_TEST(func)  RunTestImpl( (func) , #func )
-
-template <typename T, typename U>
-void AssertEqualImpl(const T& t, const U& u,
-                     const std::string& t_str, const std::string& u_str,
-                     const std::string& file, const std::string& func,
-                     unsigned line, const std::string& hint) {
-    if (t != u) {
-        std::cerr << std::boolalpha;
-        std::cerr << file << "(" << line << "): " << func << ": ";
-        std::cerr << "ASSERT_EQUAL(" << t_str << ", " << u_str << ") failed: ";
-        std::cerr << t << " != " << u << ".";
-        if (!hint.empty()) {
-            std::cerr << " Hint: " << hint;
-        }
-        std::cerr << std::endl;
-        abort();
-    }
-}
-
-#define ASSERT_EQUAL(a, b) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, ""s)
-
-#define ASSERT_EQUAL_HINT(a, b, hint) AssertEqualImpl((a), (b), #a, #b, __FILE__, __FUNCTION__, __LINE__, (hint))
-
-void AssertImpl(bool value, const std::string& expr_str,
-                const std::string& file, const std::string& func,
-                unsigned line, const std::string& hint);
-
-#define ASSERT(expr) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, ""s)
-
-#define ASSERT_HINT(expr, hint) AssertImpl(!!(expr), #expr, __FILE__, __FUNCTION__, __LINE__, (hint))
-
-std::vector<int> TakeEvens(const std::vector<int>& numbers);
-
-std::map<std::string, int> TakeAdults(const std::map<std::string, int>& people);
-
-bool IsPrime(int n);
-
-std::set<int> TakePrimes(const std::set<int>& numbers);
+void PrintDocument(const Document& document);
+void PrintMatchDocumentResult(int document_id, const std::vector<std::string_view>& words, DocumentStatus status);
+void AddDocument(SearchServer& search_server, int document_id, std::string_view document, DocumentStatus status,
+                 const std::vector<int>& ratings);
+void FindTopDocuments(const SearchServer& search_server, std::string_view raw_query);
+void MatchDocuments(const SearchServer& search_server, std::string_view query);
+void RemoveDuplicates(SearchServer& search_server);
 
 
 // -------- Начало модульных тестов поисковой системы ----------
@@ -67,12 +32,11 @@ void TestSortRelevance();
 
 void TestSplitIntoWords();
 
-//void TestGetDocumentId();
-
 void TestRemoveDocuments();
 
 // Функция TestSearchServer является точкой входа для запуска тестов
 void TestSearchServer();
+
 // --------- Окончание модульных тестов поисковой системы -----------
 
 
