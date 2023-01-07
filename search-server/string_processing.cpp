@@ -12,7 +12,6 @@ vector<string_view> SplitIntoWords(string_view str) {
         str.remove_prefix(result.back().size());
         str.remove_prefix(std::min(str.find_first_not_of(' '), str.size()));
     }
-
     return result;
 }
 

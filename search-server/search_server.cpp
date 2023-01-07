@@ -11,7 +11,6 @@ SearchServer::SearchServer(string_view stop_words_text)
 {
 }
 
-// Suppress container overload
 SearchServer::SearchServer(const string& stop_words_text)
     : SearchServer(string_view(stop_words_text))
 {
@@ -39,33 +38,12 @@ void SearchServer::AddDocument(int document_id, string_view document, DocumentSt
 }
 
 vector<Document> SearchServer::FindTopDocuments(string_view raw_query, DocumentStatus status) const {
-    return FindTopDocuments(std::execution::seq ,raw_query, status);
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy&, std::string_view raw_query, DocumentStatus status) const{
-    return FindTopDocuments(std::execution::seq ,raw_query, [status](int , DocumentStatus document_status, int ) {
-        return document_status == status;
-    });
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy&, std::string_view raw_query, DocumentStatus status) const{
-    return FindTopDocuments(std::execution::par ,raw_query, [status](int , DocumentStatus document_status, int ) {
-        return document_status == status;
-    });
+    return FindTopDocuments(std::execution::seq,raw_query, status);
 }
 
 vector<Document> SearchServer::FindTopDocuments(string_view raw_query) const {
     return FindTopDocuments(std::execution::seq, raw_query);
 }
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::sequenced_policy&, std::string_view raw_query) const{
-    return FindTopDocuments(raw_query, DocumentStatus::ACTUAL);
-}
-
-std::vector<Document> SearchServer::FindTopDocuments(const std::execution::parallel_policy& , std::string_view raw_query) const{
-    return FindTopDocuments(std::execution::par, raw_query, DocumentStatus::ACTUAL);
-}
-
 
 int SearchServer::GetDocumentCount() const {
     return documents_.size();
@@ -152,7 +130,6 @@ bool SearchServer::IsStopWord(string_view word) const {
 }
 
 bool SearchServer::IsValidWord(string_view word) {
-    // A valid word must not contain special characters
     return none_of(word.begin(), word.end(), [](char c) {
         return c >= '\0' && c < ' ';
     });

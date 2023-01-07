@@ -57,6 +57,4 @@ private:
     std::vector<Bucket> buckets_;
 };
 
-
-
 #endif // CONCURRENT_MAP_H
