@@ -137,3 +137,4 @@ for (const Document& document : ProcessQueriesJoined(search_server, queries)) {
 
 ## TODO:
 Написать Cmake файл для сборки проекта. Сделать GUI с использованием QT для работы с поисковым сервером.
+Переименовать проект, перенести его в CLion
