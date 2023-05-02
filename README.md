@@ -144,5 +144,4 @@ for (const Document& document : ProcessQueriesJoined(search_server, queries)) {
 `CMake` версии `3.20` и выше.
 
 ## TODO:
-Написать Cmake файл для сборки проекта. Сделать GUI с использованием QT для работы с поисковым сервером.
-Переименовать проект, перенести его в CLion
+Сделать GUI с использованием QT для работы с поисковым сервером.
