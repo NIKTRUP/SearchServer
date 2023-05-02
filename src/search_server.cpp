@@ -1,4 +1,4 @@
-#include "search_server.h"
+#include "../include/search_server.h"
 
 #include <cmath>
 #include <execution>

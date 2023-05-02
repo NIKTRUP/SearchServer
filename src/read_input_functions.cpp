@@ -1,4 +1,4 @@
-#include "read_input_functions.h"
+#include "../include/read_input_functions.h"
 
 
 using namespace std;

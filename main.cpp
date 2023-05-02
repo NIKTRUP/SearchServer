@@ -1,10 +1,10 @@
-#include "paginator.h"
-#include "search_server.h"
-#include "request_queue.h"
-#include "read_input_functions.h"
-#include "log_duration.h"
-#include "test_example_functions.h"
-#include "process_queries.h"
+#include "./include/paginator.h"
+#include "./include/search_server.h"
+#include "./include/request_queue.h"
+#include "./include/read_input_functions.h"
+#include "./include/log_duration.h"
+#include "./include/test_example_functions.h"
+#include "./include/process_queries.h"
 
 #include <random>
 
